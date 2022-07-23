@@ -22,7 +22,7 @@ services:
       environment:
         POSTGRES_USER: ${POSTGRES_USER}
         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-        POSTGRES_COLLATION: Hungarian_CI_AS
+        POSTGRES_COLLATION: ${POSTGRES_COLLATION}
       volumes:
         - ./database/pgdata:/var/lib/postgresql/data
         - ./database/init:/docker-entrypoint-initdb.d/
@@ -34,7 +34,7 @@ services:
     build:
       context: ./php-fpm
     volumes:
-      - ./backend:/www
+      - ./app:/www
       - ./php-fpm/custom.ini:/usr/local/etc/php/conf.d/custom.ini
   nginx:
     container_name: nginx-container 
@@ -42,7 +42,7 @@ services:
       context: ./nginx
     volumes:
       - ./nginx/:/etc/nginx
-      - ./backend:/www
+      - ./app:/www
     ports:
       - "80:80"
       # - "443:443"
