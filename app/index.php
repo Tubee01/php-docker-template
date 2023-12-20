@@ -1,70 +1,55 @@
 <?php
-try {
-    $name = '';
+// Get the requested URL path
+$requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-    // env.POSTGRES_SERVER = Docker container name
-    $host = 'database';
-    // env.POSTGRES_USER 
-    $user = 'admin';
-    // env.POSTGRES_PASSWORD
-    $password = 'longestpassword';
-    // Test db inited in - ~/database/init/init.sql
-    $db = 'master';
-    //
-    $dsn = "pgsql:host=$host;port=5432;dbname=$db;";
+// Remove leading and trailing slashes and explode the path into an array
+$requestSegments = explode('/', trim($requestPath, '/'));
 
-    $pdo = new PDO($dsn, $user, $password, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+// Svelte baseDir
+$svelteBaseDir = 'svelte';
 
-    if ($pdo) {
-        $sth = $pdo->prepare("SELECT name FROM Urak");
-        $sth->execute();
-        $result = $sth->fetch(PDO::FETCH_OBJ);
-        $name = $result->name;
-    }
-} catch (PDOException $e) {
-    die($e->getMessage());
+if ($requestSegments[0] === '_app') {
+    $requestPath = '/' . $svelteBaseDir . $requestPath;
 }
 
-?>
+// Construct the full path to the requested file
+$filePath = __DIR__ . $requestPath;
 
-<!DOCTYPE html>
-<html lang="en">
+// Check if the file exists
+if (file_exists($filePath) && is_file($filePath)) {
+    // Determine the MIME type based on the file extension
+    $mimeTypes = [
+        'html' => 'text/html',
+        'js'   => 'application/javascript',
+    ];
 
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<style>
-    * {
-        margin: 0;
-    }
+    $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+    $mime = $mimeTypes[$fileExtension] ?? 'text/plain';
 
-    body {
-        min-width: 100vw;
-        min-height: 100vh;
-    }
+    // Set the appropriate Content-Type header
+    header("Content-Type: $mime");
 
-    .center {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
+    // Serve the file content
+    readfile($filePath);
 
-    }
+    return;
+}
 
-    h2 {
-        letter-spacing: 5px;
-    }
-</style>
+// The first segment is the controller (folder)
+$controller = isset($requestSegments[0]) ? $requestSegments[0] : 'home';
 
-<body>
-    <div class="center">
-        <h2> Szia <?= $name ?>!</h2>
-        <a href="/info">php_info()</a>
-    </div>
-</body>
+// The second segment is the action (file)
+$action = isset($requestSegments[1]) ? $requestSegments[1] : 'index';
 
-</html>
+// Include the corresponding PHP file based on the controller and action
+$controllerPath = __DIR__ . "/controllers/$controller/$action.php";
+
+// Check if the file exists
+if (file_exists($controllerPath)) {
+    // Include the controller file
+    require $controllerPath;
+} else {
+    // Handle 404 error (File not found)
+    http_response_code(404);
+    echo '404 Not Found';
+}

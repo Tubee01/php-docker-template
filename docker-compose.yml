@@ -35,6 +35,7 @@ services:
       context: ./php-fpm
     volumes:
       - ./app:/www
+      - ./frontend/build:/www/svelte
       - ./php-fpm/custom.ini:/usr/local/etc/php/conf.d/custom.ini
   nginx:
     container_name: nginx-container 
@@ -43,6 +44,7 @@ services:
     volumes:
       - ./nginx/:/etc/nginx
       - ./app:/www
+      - ./frontend/build:/www/svelte
     ports:
       - "80:80"
       # - "443:443"
